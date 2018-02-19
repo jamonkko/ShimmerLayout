@@ -3,6 +3,7 @@
     <declare-styleable name="ShimmerLayout">
         <attr name="shimmer_color" format="color|reference"/>
         <attr name="shimmer_animation_duration" format="integer|reference"/>
+        <attr name="shimmer_animation_start_delay" format="integer|reference"/>
         <attr name="shimmer_auto_start" format="boolean|reference"/>
         <attr name="shimmer_angle" format="integer|reference"/>
         <attr name="shimmer_mask_width" format="float|reference"/>
