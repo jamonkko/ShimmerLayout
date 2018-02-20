@@ -56,6 +56,7 @@ public class ShimmerLayout extends FrameLayout {
     private int shimmerAngle;
     private float maskWidth;
     private float gradientCenterColorWidth;
+    private boolean shimmerEchoEnabled;
 
     private ViewTreeObserver.OnPreDrawListener startAnimationPreDrawListener;
 
@@ -88,6 +89,7 @@ public class ShimmerLayout extends FrameLayout {
             autoStart = a.getBoolean(R.styleable.ShimmerLayout_shimmer_auto_start, false);
             maskWidth = a.getFloat(R.styleable.ShimmerLayout_shimmer_mask_width, 0.5F);
             gradientCenterColorWidth = a.getFloat(R.styleable.ShimmerLayout_shimmer_gradient_center_color_width, 0.1F);
+            shimmerEchoEnabled = a.getBoolean(R.styleable.ShimmerLayout_shimmer_echo_enabled, true);
         } finally {
             a.recycle();
         }
@@ -430,7 +432,9 @@ public class ShimmerLayout extends FrameLayout {
         });
 
         maskAnimator.play(shim1Animator).after(delay);
-        maskAnimator.play(shim2Animator).with(shim1Animator);
+        if (shimmerEchoEnabled) {
+            maskAnimator.play(shim2Animator).with(shim1Animator);
+        }
 
         maskAnimator.addListener(new AnimatorListenerAdapter() {
             private boolean mCanceled;
