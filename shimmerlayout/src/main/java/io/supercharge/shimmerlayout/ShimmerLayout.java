@@ -2,6 +2,7 @@ package io.supercharge.shimmerlayout;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -18,6 +19,7 @@ import android.graphics.Shader;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.FrameLayout;
 
 public class ShimmerLayout extends FrameLayout {
@@ -32,14 +34,19 @@ public class ShimmerLayout extends FrameLayout {
     private static final int MIN_GRADIENT_CENTER_COLOR_WIDTH_VALUE = 0;
     private static final int MAX_GRADIENT_CENTER_COLOR_WIDTH_VALUE = 1;
 
-    private int maskOffsetX;
+    private int mask1OffsetX;
+    private int mask2OffsetX;
     private Rect maskRect;
-    private Paint gradientTexturePaint;
-    private ValueAnimator maskAnimator;
+    private Paint gradientTexturePaint1;
+    private Paint gradientTexturePaint2;
+    private AnimatorSet maskAnimator;
 
-    private Bitmap localMaskBitmap;
-    private Bitmap maskBitmap;
-    private Canvas canvasForShimmerMask;
+    private Bitmap localMask1Bitmap;
+    private Bitmap localMask2Bitmap;
+    private Bitmap mask1Bitmap;
+    private Bitmap mask2Bitmap;
+    private Canvas canvasForShimmerMask1;
+    private Canvas canvasForShimmerMask2;
 
     private boolean isAnimationStarted;
     private boolean autoStart;
@@ -65,7 +72,8 @@ public class ShimmerLayout extends FrameLayout {
 
         setWillNotDraw(false);
 
-        maskOffsetX = -1;
+        mask1OffsetX = Integer.MIN_VALUE;
+        mask2OffsetX = Integer.MIN_VALUE;
 
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
@@ -100,10 +108,17 @@ public class ShimmerLayout extends FrameLayout {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        if (!isAnimationStarted || getWidth() <= 0 || getHeight() <= 0) {
+        if (!isAnimationStarted || getWidth() <= 0 || getHeight() <= 0 || (mask1OffsetX == Integer.MIN_VALUE && mask2OffsetX == Integer.MIN_VALUE)) {
             super.dispatchDraw(canvas);
         } else {
-            dispatchDrawShimmer(canvas);
+            super.dispatchDraw(canvas);
+
+            if (mask1OffsetX != Integer.MIN_VALUE) {
+                dispatchDrawShimmer1(canvas);
+            }
+            if (mask2OffsetX != Integer.MIN_VALUE) {
+                dispatchDrawShimmer2(canvas);
+            }
         }
     }
 
@@ -226,100 +241,133 @@ public class ShimmerLayout extends FrameLayout {
         }
     }
 
-    private void dispatchDrawShimmer(Canvas canvas) {
-        super.dispatchDraw(canvas);
+    private void dispatchDrawShimmer1(Canvas canvas) {
+        if (mask1Bitmap == null) {
+            mask1Bitmap = createBitmap(maskRect.width(), getHeight());
+        }
 
-        localMaskBitmap = getMaskBitmap();
-        if (localMaskBitmap == null) {
+        localMask1Bitmap = mask1Bitmap;
+        if (localMask1Bitmap == null) {
             return;
         }
 
-        if (canvasForShimmerMask == null) {
-            canvasForShimmerMask = new Canvas(localMaskBitmap);
+        if (canvasForShimmerMask1 == null) {
+            canvasForShimmerMask1 = new Canvas(localMask1Bitmap);
         }
 
-        canvasForShimmerMask.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        canvasForShimmerMask1.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
 
-        canvasForShimmerMask.save();
-        canvasForShimmerMask.translate(-maskOffsetX, 0);
+        canvasForShimmerMask1.save();
+        canvasForShimmerMask1.translate(-mask1OffsetX, 0);
 
-        super.dispatchDraw(canvasForShimmerMask);
+        super.dispatchDraw(canvasForShimmerMask1);
 
-        canvasForShimmerMask.restore();
+        canvasForShimmerMask1.restore();
 
-        drawShimmer(canvas);
+        if (gradientTexturePaint1 == null) {
+            gradientTexturePaint1 = createShimmerPaint(localMask1Bitmap, shimmerColor);
+        }
 
-        localMaskBitmap = null;
+        drawShimmer(canvas, mask1OffsetX, gradientTexturePaint1);
+
+        localMask1Bitmap = null;
     }
 
-    private void drawShimmer(Canvas destinationCanvas) {
-        createShimmerPaint();
 
-        destinationCanvas.save();
-
-        destinationCanvas.translate(maskOffsetX, 0);
-        if (maskOffsetX >= 0) {
-            destinationCanvas.drawRect(maskRect.left, 0, maskRect.width(), maskRect.height(), gradientTexturePaint);
+    private void dispatchDrawShimmer2(Canvas canvas) {
+        if (mask2Bitmap == null) {
+            mask2Bitmap = createBitmap(maskRect.width(), getHeight());
         }
 
+        localMask2Bitmap = mask2Bitmap;
+        if (localMask2Bitmap == null) {
+            return;
+        }
+
+        if (canvasForShimmerMask2 == null) {
+            canvasForShimmerMask2 = new Canvas(localMask2Bitmap);
+        }
+
+        canvasForShimmerMask2.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+
+        canvasForShimmerMask2.save();
+        canvasForShimmerMask2.translate(-mask2OffsetX, 0);
+
+        super.dispatchDraw(canvasForShimmerMask2);
+
+        canvasForShimmerMask2.restore();
+
+        if (gradientTexturePaint2 == null) {
+            gradientTexturePaint2 = createShimmerPaint(localMask2Bitmap, adjustAlpha(shimmerColor, 0.5f));
+        }
+
+        drawShimmer(canvas, mask2OffsetX, gradientTexturePaint2);
+
+        localMask1Bitmap = null;
+    }
+
+    private void drawShimmer(Canvas destinationCanvas, float offset, Paint paint) {
+        destinationCanvas.save();
+        destinationCanvas.translate(offset, 0);
+        destinationCanvas.drawRect(maskRect.left, 0, maskRect.width(), maskRect.height(), paint);
         destinationCanvas.restore();
     }
 
     private void resetShimmering() {
         if (maskAnimator != null) {
             maskAnimator.end();
-            maskAnimator.removeAllUpdateListeners();
+            maskAnimator.removeAllListeners();
+            for (Animator child : maskAnimator.getChildAnimations()) {
+                child.removeAllListeners();
+                if (child instanceof ValueAnimator) {
+                    ((ValueAnimator)child).removeAllUpdateListeners();
+                }
+            }
         }
 
         maskAnimator = null;
-        gradientTexturePaint = null;
+        gradientTexturePaint1 = null;
+        gradientTexturePaint2 = null;
         isAnimationStarted = false;
-
         releaseBitMaps();
     }
 
     private void releaseBitMaps() {
-        canvasForShimmerMask = null;
+        canvasForShimmerMask1 = null;
+        canvasForShimmerMask2 = null;
 
-        if (maskBitmap != null) {
-            maskBitmap.recycle();
-            maskBitmap = null;
+        if (mask1Bitmap != null) {
+            mask1Bitmap.recycle();
+            mask1Bitmap = null;
+        }
+        if (mask2Bitmap != null) {
+            mask2Bitmap.recycle();
+            mask2Bitmap = null;
         }
     }
 
-    private Bitmap getMaskBitmap() {
-        if (maskBitmap == null) {
-            maskBitmap = createBitmap(maskRect.width(), getHeight());
-        }
-
-        return maskBitmap;
-    }
-
-    private void createShimmerPaint() {
-        if (gradientTexturePaint != null) {
-            return;
-        }
-
-        final int edgeColor = reduceColorAlphaValueToZero(shimmerColor);
+    private Paint createShimmerPaint(Bitmap localBitmap, int color) {
+        final int edgeColor = adjustAlpha(color, 0);
         final float shimmerLineWidth = getWidth() / 2 * maskWidth;
 
         LinearGradient gradient = new LinearGradient(
                 0, getHeight(),
                 (int) (Math.cos(Math.toRadians(shimmerAngle)) * shimmerLineWidth),
                 getHeight() + (int) (Math.sin(Math.toRadians(shimmerAngle)) * shimmerLineWidth),
-                new int[]{edgeColor, shimmerColor, shimmerColor, edgeColor},
+                new int[]{edgeColor, color, color, edgeColor},
                 getGradientColorDistribution(),
                 Shader.TileMode.CLAMP);
 
-        BitmapShader maskBitmapShader = new BitmapShader(localMaskBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        BitmapShader maskBitmapShader = new BitmapShader(localBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
 
         ComposeShader composeShader = new ComposeShader(gradient, maskBitmapShader, PorterDuff.Mode.DST_IN);
 
-        gradientTexturePaint = new Paint();
+        Paint gradientTexturePaint = new Paint();
         gradientTexturePaint.setAntiAlias(true);
         gradientTexturePaint.setDither(true);
         gradientTexturePaint.setFilterBitmap(true);
         gradientTexturePaint.setShader(composeShader);
+        return gradientTexturePaint;
     }
 
     private Animator getShimmerAnimation() {
@@ -343,22 +391,46 @@ public class ShimmerLayout extends FrameLayout {
         final int shimmerBitmapWidth = maskRect.width();
         final int shimmerAnimationFullLength = animationToX - animationFromX;
 
-        maskAnimator = ValueAnimator.ofFloat(0.0F, 1.0F);
-        maskAnimator.setDuration(shimmerAnimationDuration);
-        maskAnimator.setStartDelay(shimmerAnimationDelay);
+        maskAnimator = new AnimatorSet();
 
-        final float[] value = new float[1];
-        maskAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+        ValueAnimator delay = ValueAnimator.ofFloat(0.0F, 1.0F);
+        delay.setDuration(shimmerAnimationDelay);
+
+        ValueAnimator shim1Animator = ValueAnimator.ofFloat(0.0F, 1.0F);
+        shim1Animator.setDuration(shimmerAnimationDuration);
+
+        final float[] value1 = new float[1];
+        shim1Animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                value[0] = (Float) animation.getAnimatedValue();
-                maskOffsetX = ((int) (animationFromX + shimmerAnimationFullLength * value[0]));
+                value1[0] = (Float) animation.getAnimatedValue();
+                mask1OffsetX = ((int) (animationFromX + shimmerAnimationFullLength * value1[0]));
 
-                if (maskOffsetX + shimmerBitmapWidth >= 0) {
+                if (mask1OffsetX + shimmerBitmapWidth >= 0) {
                     invalidate();
                 }
             }
         });
+
+        ValueAnimator shim2Animator = ValueAnimator.ofFloat(0.0F, 1.0F);
+        shim2Animator.setInterpolator(new AccelerateInterpolator(2));
+        shim2Animator.setDuration(shimmerAnimationDuration - shimmerAnimationDuration/10);
+
+        final float[] value2 = new float[1];
+        shim2Animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                value2[0] = (Float) animation.getAnimatedValue();
+                mask2OffsetX = ((int) (animationFromX + shimmerAnimationFullLength * value2[0]));
+
+                if (mask2OffsetX + shimmerBitmapWidth >= 0) {
+                    invalidate();
+                }
+            }
+        });
+
+        maskAnimator.play(shim1Animator).after(delay);
+        maskAnimator.play(shim2Animator).with(shim1Animator);
 
         maskAnimator.addListener(new AnimatorListenerAdapter() {
             private boolean mCanceled;
@@ -375,7 +447,8 @@ public class ShimmerLayout extends FrameLayout {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                maskOffsetX = -1;
+                mask1OffsetX = Integer.MIN_VALUE;
+                mask2OffsetX = Integer.MIN_VALUE;
                 if (!mCanceled) {
                     animation.start();
                 }
@@ -405,8 +478,9 @@ public class ShimmerLayout extends FrameLayout {
         }
     }
 
-    private int reduceColorAlphaValueToZero(int actualColor) {
-        return Color.argb(0, Color.red(actualColor), Color.green(actualColor), Color.blue(actualColor));
+    private int adjustAlpha(int color, float factor) {
+        int alpha = Math.round(Color.alpha(color) * factor);
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
     }
 
     private Rect calculateBitmapMaskRect() {
