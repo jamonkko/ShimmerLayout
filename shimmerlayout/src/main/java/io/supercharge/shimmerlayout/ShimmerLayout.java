@@ -23,7 +23,7 @@ import android.widget.FrameLayout;
 public class ShimmerLayout extends FrameLayout {
 
     private static final int DEFAULT_ANIMATION_DURATION = 1500;
-    private static final int DEFAULT_ANIMATION_START_DELAY = 0;
+    private static final int DEFAULT_ANIMATION_DELAY = 0;
     private static final int DEFAULT_ANGLE = 20;
     private static final int MIN_ANGLE_VALUE = 0;
     private static final int MAX_ANGLE_VALUE = 30;
@@ -44,7 +44,7 @@ public class ShimmerLayout extends FrameLayout {
     private boolean isAnimationStarted;
     private boolean autoStart;
     private int shimmerAnimationDuration;
-    private int shimmerAnimationStartDelay;
+    private int shimmerAnimationDelay;
     private int shimmerColor;
     private int shimmerAngle;
     private float maskWidth;
@@ -73,7 +73,7 @@ public class ShimmerLayout extends FrameLayout {
         try {
             shimmerAngle = a.getInteger(R.styleable.ShimmerLayout_shimmer_angle, DEFAULT_ANGLE);
             shimmerAnimationDuration = a.getInteger(R.styleable.ShimmerLayout_shimmer_animation_duration, DEFAULT_ANIMATION_DURATION);
-            shimmerAnimationStartDelay = a.getInteger(R.styleable.ShimmerLayout_shimmer_animation_start_delay, DEFAULT_ANIMATION_START_DELAY);
+            shimmerAnimationDelay = a.getInteger(R.styleable.ShimmerLayout_shimmer_animation_delay, DEFAULT_ANIMATION_DELAY);
             shimmerColor = a.getColor(R.styleable.ShimmerLayout_shimmer_color, getColor(R.color.shimmer_color));
             autoStart = a.getBoolean(R.styleable.ShimmerLayout_shimmer_auto_start, false);
             maskWidth = a.getFloat(R.styleable.ShimmerLayout_shimmer_mask_width, 0.5F);
@@ -161,8 +161,8 @@ public class ShimmerLayout extends FrameLayout {
         resetIfStarted();
     }
 
-    public void setShimmerAnimationStartDelay(int delayMillis) {
-        this.shimmerAnimationStartDelay = delayMillis;
+    public void setShimmerAnimationDelay(int delayMillis) {
+        this.shimmerAnimationDelay = delayMillis;
         resetIfStarted();
     }
 
@@ -342,7 +342,6 @@ public class ShimmerLayout extends FrameLayout {
         maskAnimator = ValueAnimator.ofFloat(0.0F, 1.0F);
         maskAnimator.setDuration(shimmerAnimationDuration);
         maskAnimator.setRepeatCount(ObjectAnimator.INFINITE);
-        maskAnimator.setStartDelay(shimmerAnimationStartDelay);
 
         final float[] value = new float[1];
         maskAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
