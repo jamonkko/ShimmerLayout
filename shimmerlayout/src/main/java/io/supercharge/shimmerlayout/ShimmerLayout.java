@@ -1,7 +1,7 @@
 package io.supercharge.shimmerlayout;
 
 import android.animation.Animator;
-import android.animation.ObjectAnimator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -341,7 +341,7 @@ public class ShimmerLayout extends FrameLayout {
 
         maskAnimator = ValueAnimator.ofFloat(0.0F, 1.0F);
         maskAnimator.setDuration(shimmerAnimationDuration);
-        maskAnimator.setRepeatCount(ObjectAnimator.INFINITE);
+        maskAnimator.setStartDelay(shimmerAnimationDelay);
 
         final float[] value = new float[1];
         maskAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -354,6 +354,28 @@ public class ShimmerLayout extends FrameLayout {
                     invalidate();
                 }
             }
+        });
+
+        maskAnimator.addListener(new AnimatorListenerAdapter() {
+            private boolean mCanceled;
+
+            @Override
+            public void onAnimationStart(Animator animation) {
+                mCanceled = false;
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                mCanceled = true;
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (!mCanceled) {
+                    animation.start();
+                }
+            }
+
         });
 
         return maskAnimator;
