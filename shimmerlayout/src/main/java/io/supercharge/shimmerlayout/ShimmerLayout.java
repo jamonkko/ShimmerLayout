@@ -65,6 +65,8 @@ public class ShimmerLayout extends FrameLayout {
 
         setWillNotDraw(false);
 
+        maskOffsetX = -1;
+
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
                 R.styleable.ShimmerLayout,
@@ -256,7 +258,9 @@ public class ShimmerLayout extends FrameLayout {
         destinationCanvas.save();
 
         destinationCanvas.translate(maskOffsetX, 0);
-        destinationCanvas.drawRect(maskRect.left, 0, maskRect.width(), maskRect.height(), gradientTexturePaint);
+        if (maskOffsetX >= 0) {
+            destinationCanvas.drawRect(maskRect.left, 0, maskRect.width(), maskRect.height(), gradientTexturePaint);
+        }
 
         destinationCanvas.restore();
     }
@@ -371,6 +375,7 @@ public class ShimmerLayout extends FrameLayout {
 
             @Override
             public void onAnimationEnd(Animator animation) {
+                maskOffsetX = -1;
                 if (!mCanceled) {
                     animation.start();
                 }
