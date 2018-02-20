@@ -185,6 +185,11 @@ public class ShimmerLayout extends FrameLayout {
         resetIfStarted();
     }
 
+    public void enableShimmerEcho(boolean enabled) {
+        this.shimmerEchoEnabled = enabled;
+        resetIfStarted();
+    }
+
     /**
      * Set the angle of the shimmer effect in clockwise direction in degrees.
      * The angle must be between {@value #MIN_ANGLE_VALUE} and {@value #MAX_ANGLE_VALUE}.
