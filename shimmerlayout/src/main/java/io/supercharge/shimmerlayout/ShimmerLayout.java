@@ -50,6 +50,7 @@ public class ShimmerLayout extends FrameLayout {
 
     private boolean isAnimationStarted;
     private boolean autoStart;
+    private boolean loopEnabled;
     private int shimmerAnimationDuration;
     private int shimmerAnimationDelay;
     private int shimmerColor;
@@ -87,6 +88,7 @@ public class ShimmerLayout extends FrameLayout {
             shimmerAnimationDelay = a.getInteger(R.styleable.ShimmerLayout_shimmer_animation_delay, DEFAULT_ANIMATION_DELAY);
             shimmerColor = a.getColor(R.styleable.ShimmerLayout_shimmer_color, getColor(R.color.shimmer_color));
             autoStart = a.getBoolean(R.styleable.ShimmerLayout_shimmer_auto_start, false);
+            loopEnabled = a.getBoolean(R.styleable.ShimmerLayout_shimmer_loop_enabled, true);
             maskWidth = a.getFloat(R.styleable.ShimmerLayout_shimmer_mask_width, 0.5F);
             gradientCenterColorWidth = a.getFloat(R.styleable.ShimmerLayout_shimmer_gradient_center_color_width, 0.1F);
             shimmerEchoEnabled = a.getBoolean(R.styleable.ShimmerLayout_shimmer_echo_enabled, true);
@@ -187,6 +189,11 @@ public class ShimmerLayout extends FrameLayout {
 
     public void enableShimmerEcho(boolean enabled) {
         this.shimmerEchoEnabled = enabled;
+        resetIfStarted();
+    }
+
+    public void setLoopEnabled(boolean enabled) {
+        this.loopEnabled = enabled;
         resetIfStarted();
     }
 
@@ -442,23 +449,23 @@ public class ShimmerLayout extends FrameLayout {
         }
 
         maskAnimator.addListener(new AnimatorListenerAdapter() {
-            private boolean mCanceled;
+            private boolean canceled;
 
             @Override
             public void onAnimationStart(Animator animation) {
-                mCanceled = false;
+                canceled = false;
             }
 
             @Override
             public void onAnimationCancel(Animator animation) {
-                mCanceled = true;
+                canceled = true;
             }
 
             @Override
             public void onAnimationEnd(Animator animation) {
                 mask1OffsetX = Integer.MIN_VALUE;
                 mask2OffsetX = Integer.MIN_VALUE;
-                if (!mCanceled) {
+                if (!canceled && loopEnabled) {
                     animation.start();
                 }
             }
