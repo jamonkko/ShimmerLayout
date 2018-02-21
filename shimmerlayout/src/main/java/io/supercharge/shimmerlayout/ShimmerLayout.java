@@ -192,7 +192,7 @@ public class ShimmerLayout extends FrameLayout {
         resetIfStarted();
     }
 
-    public void setLoopEnabled(boolean enabled) {
+    public void enableShimmerLoop(boolean enabled) {
         this.loopEnabled = enabled;
         resetIfStarted();
     }
