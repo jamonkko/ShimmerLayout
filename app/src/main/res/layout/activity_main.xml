@@ -15,9 +15,10 @@
         android:paddingRight="10dp"
         android:paddingTop="30dp"
         app:shimmer_animation_delay="2000"
-        app:shimmer_animation_duration="1500"
-        app:shimmer_color="@android:color/background_light"
-        app:shimmer_loop_enabled="false"
+        app:shimmer_animation_duration="10000"
+        app:shimmer_color="#000000"
+        app:shimmer_loop_enabled="true"
+        app:shimmer_gradient_center_color_width="0.01"
         tools:context="io.supercharge.shimmeringlayout.MainActivity">
         <RelativeLayout
             android:layout_width="match_parent"
