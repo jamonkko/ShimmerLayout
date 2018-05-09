@@ -48,7 +48,6 @@ public class ShimmerLayout extends FrameLayout {
     private Canvas canvasForShimmerMask1;
     private Canvas canvasForShimmerMask2;
 
-    private boolean isAnimationStarted;
     private boolean autoStart;
     private boolean loopEnabled;
     private int shimmerAnimationDuration;
@@ -112,7 +111,7 @@ public class ShimmerLayout extends FrameLayout {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        if (!isAnimationStarted || getWidth() <= 0 || getHeight() <= 0 || (mask1OffsetX == Integer.MIN_VALUE && mask2OffsetX == Integer.MIN_VALUE)) {
+        if (!isRunning() || getWidth() <= 0 || getHeight() <= 0 || (mask1OffsetX == Integer.MIN_VALUE && mask2OffsetX == Integer.MIN_VALUE)) {
             super.dispatchDraw(canvas);
         } else {
             super.dispatchDraw(canvas);
@@ -139,7 +138,7 @@ public class ShimmerLayout extends FrameLayout {
     }
 
     public void startShimmerAnimation() {
-        if (isAnimationStarted) {
+        if (maskAnimator != null && maskAnimator.isStarted()) {
             return;
         }
 
@@ -149,19 +148,19 @@ public class ShimmerLayout extends FrameLayout {
                 public boolean onPreDraw() {
                     getViewTreeObserver().removeOnPreDrawListener(this);
                     startShimmerAnimation();
-
                     return true;
                 }
             };
-
             getViewTreeObserver().addOnPreDrawListener(startAnimationPreDrawListener);
-
             return;
         }
 
-        Animator animator = getShimmerAnimation();
-        animator.start();
-        isAnimationStarted = true;
+        if (maskAnimator == null) {
+            maskAnimator = createShimmerAnimation();
+        }
+        if (!maskAnimator.isStarted()) {
+            maskAnimator.start();
+        }
     }
 
     public void stopShimmerAnimation() {
@@ -249,7 +248,7 @@ public class ShimmerLayout extends FrameLayout {
     }
 
     private void resetIfStarted() {
-        if (isAnimationStarted) {
+        if (maskAnimator != null) {
             resetShimmering();
             startShimmerAnimation();
         }
@@ -342,7 +341,6 @@ public class ShimmerLayout extends FrameLayout {
         maskAnimator = null;
         gradientTexturePaint1 = null;
         gradientTexturePaint2 = null;
-        isAnimationStarted = false;
         releaseBitMaps();
     }
 
@@ -384,11 +382,7 @@ public class ShimmerLayout extends FrameLayout {
         return gradientTexturePaint;
     }
 
-    private Animator getShimmerAnimation() {
-        if (maskAnimator != null) {
-            return maskAnimator;
-        }
-
+    private AnimatorSet createShimmerAnimation() {
         if (maskRect == null) {
             maskRect = calculateBitmapMaskRect();
         }
@@ -405,7 +399,7 @@ public class ShimmerLayout extends FrameLayout {
         final int shimmerBitmapWidth = maskRect.width();
         final int shimmerAnimationFullLength = animationToX - animationFromX;
 
-        maskAnimator = new AnimatorSet();
+        AnimatorSet animator = new AnimatorSet();
 
         ValueAnimator delay = ValueAnimator.ofFloat(0.0F, 1.0F);
         delay.setDuration(shimmerAnimationDelay);
@@ -443,12 +437,12 @@ public class ShimmerLayout extends FrameLayout {
             }
         });
 
-        maskAnimator.play(shim1Animator).after(delay);
+        animator.play(shim1Animator).after(delay);
         if (shimmerEchoEnabled) {
-            maskAnimator.play(shim2Animator).with(shim1Animator);
+            animator.play(shim2Animator).with(shim1Animator);
         }
 
-        maskAnimator.addListener(new AnimatorListenerAdapter() {
+        animator.addListener(new AnimatorListenerAdapter() {
             private boolean canceled;
 
             @Override
@@ -471,8 +465,7 @@ public class ShimmerLayout extends FrameLayout {
             }
 
         });
-
-        return maskAnimator;
+        return animator;
     }
 
     private Bitmap createBitmap(int width, int height) {
@@ -520,5 +513,9 @@ public class ShimmerLayout extends FrameLayout {
         colorDistribution[2] = 0.5F + gradientCenterColorWidth / 2F;
 
         return colorDistribution;
+    }
+
+    private boolean isRunning() {
+        return maskAnimator != null && maskAnimator.isRunning();
     }
 }
